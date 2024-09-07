@@ -1,93 +1,152 @@
 import streamlit as st
-import colorsys
-from PIL import Image, ImageDraw, ImageFont
+from streamlit import session_state as state
+from color_utils import generate_palette, is_valid_hex, get_contrast_ratio, hex_to_rgb, get_luminance
 
-def hex_to_rgb(hex_color):
-    """Convert a hex color to RGB."""
-    hex_color = hex_color.lstrip('#')
-    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+st.set_page_config(page_title="Color Palette Generator", page_icon="🎨", layout="wide")
 
-def rgb_to_hex(rgb):
-    """Convert RGB to hex color."""
-    return '#{:02x}{:02x}{:02x}'.format(*rgb)
+st.title("🌈 Color Palette Generator")
 
-def blend_color(color1, color2, factor):
-    """Blend two colors with a given factor."""
-    return tuple(int(color1[i] + (color2[i] - color1[i]) * factor) for i in range(3))
+st.markdown("""
+This app generates color palettes from color.100 (lightest) to color.900 (darkest) based on your input color(s).
+Enter hex color codes (e.g., #FF5733) in the input fields below to get started!
+""")
 
-def generate_palette(base_color):
-    """Generate a palette of 9 colors based on the input color."""
-    rgb = hex_to_rgb(base_color)
-    hsv = colorsys.rgb_to_hsv(*[x/255 for x in rgb])
-    
-    palette = []
-    
-    # Generate lighter colors (100-400)
-    for i in range(4):
-        factor = 0.8 - (i * 0.2)
-        light_rgb = blend_color(rgb, (255, 255, 255), factor)
-        palette.append(rgb_to_hex(light_rgb))
-    
-    # Add base color (500)
-    palette.append(base_color)
-    
-    # Generate darker colors (600-900)
-    for i in range(4):
-        factor = 0.2 + (i * 0.2)
-        dark_rgb = blend_color(rgb, (0, 0, 0), factor)
-        palette.append(rgb_to_hex(dark_rgb))
-    
-    return palette
+# Initialize the state for color inputs if it doesn't exist
+if 'color_inputs' not in state:
+    state.color_inputs = [{"hex": "#4287f5", "name": "Blue"}]
 
-def create_color_image(hex_color, color_name, size=(300, 50)):
-    """Create an image of a given color with color name and hex value."""
-    img = Image.new('RGB', size, hex_color)
-    draw = ImageDraw.Draw(img)
-    
-    # Use a default font
-    font = ImageFont.load_default()
-    
-    # Calculate text position
-    text = f"{color_name}: {hex_color}"
-    text_width = draw.textlength(text, font=font)
-    text_position = ((size[0] - text_width) // 2, (size[1] - font.size) // 2)
-    
-    # Determine text color (white for dark backgrounds, black for light backgrounds)
-    rgb = hex_to_rgb(hex_color)
-    text_color = 'white' if sum(rgb) < 382 else 'black'
-    
-    # Draw text
-    draw.text(text_position, text, font=font, fill=text_color)
-    
-    return img
+def add_new_color():
+    state.color_inputs.append({"hex": "#aaaaaa", "name": "Gray"})
+    state.color_inputs = state.color_inputs  # Trigger a rerun
 
-def main():
-    st.set_page_config(page_title="Color Palette Generator", page_icon="🎨", layout="wide")
-    
-    st.title("🎨 Color Palette Generator")
-    st.write("Enter a hex color value to generate a palette of 9 colors.")
+def remove_color(index):
+    if len(state.color_inputs) > 1:
+        del state.color_inputs[index]
+        state.color_inputs = state.color_inputs  # Trigger a rerun
 
-    # User input for hex color
-    base_color = st.text_input("Enter a hex color (e.g., #FF5733):", value="#FF5733")
-    
-    if base_color:
-        try:
-            # Generate palette
-            palette = generate_palette(base_color)
-            
-            # Display palette
-            st.subheader("Generated Palette")
-            
-            # Create a container for the color blocks
-            container = st.container()
-            
-            # Display color blocks
-            for i, color in enumerate(palette):
-                color_name = f"color.{(i+1)*100}"
-                container.image(create_color_image(color, color_name), use_column_width=True)
-            
-        except ValueError:
-            st.error("Invalid hex color. Please enter a valid hex color (e.g., #FF5733).")
+# Add new base color button
+st.button("Add new base color", on_click=add_new_color)
 
-if __name__ == "__main__":
-    main()
+def get_wcag_level(ratio):
+    if ratio >= 7:
+        return "AAA"
+    elif ratio >= 4.5:
+        return "AA"
+    else:
+        return "fail"
+
+def get_text_color(background_color):
+    luminance = get_luminance(hex_to_rgb(background_color))
+    return "#FFFFFF" if luminance < 0.5 else "#000000"
+
+def display_palette(palette, title):
+    st.subheader(title)
+    for color_name, color_hex in palette.items():
+        contrast_ratio_white = get_contrast_ratio(color_hex, "#FFFFFF")
+        contrast_ratio_black = get_contrast_ratio(color_hex, "#000000")
+
+        text_color = get_text_color(color_hex)
+
+        st.markdown(
+            f'<div style="background-color: {color_hex}; padding: 15px 10px; margin: 5px 0; border-radius: 5px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; align-items: center; height: 80px;">'
+            f'<span style="color: {text_color};">{color_name.replace("-", ".")}</span>'
+            f'<span style="color: {text_color};">{color_hex}</span>'
+            f'<div style="display: flex; flex-direction: column; align-items: center;"><span style="color: #FFFFFF;">{contrast_ratio_white:.2f}</span><span style="color: #FFFFFF; font-size: 0.8em;">{get_wcag_level(contrast_ratio_white)}</span></div>'
+            f'<div style="display: flex; flex-direction: column; align-items: center;"><span style="color: #000000;">{contrast_ratio_black:.2f}</span><span style="color: #000000; font-size: 0.8em;">{get_wcag_level(contrast_ratio_black)}</span></div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+def generate_css(palettes):
+    css = ":root {\n"
+    for i, palette in enumerate(palettes):
+        for color_name, color_hex in palette.items():
+            css += f"  --{color_name.replace('.', '-')}: {color_hex};\n"
+    css += "}\n"
+    return css
+
+def generate_scss(palettes):
+    scss = ""
+    for i, palette in enumerate(palettes):
+        scss += f"$palette-{i+1}: (\n"
+        for color_name, color_hex in palette.items():
+            scss += f"  '{color_name}': {color_hex},\n"
+        scss = scss.rstrip(',\n') + "\n);\n\n"
+    return scss
+
+if state.color_inputs:
+    valid_inputs = []
+    cols = st.columns(len(state.color_inputs))
+    for i, (color_input, col) in enumerate(zip(state.color_inputs, cols)):
+        with col:
+            new_name = st.text_input(f"Color {i+1} Name:", value=color_input["name"], key=f"name_{i}")
+            new_color = st.text_input(f"Color {i+1} Hex:", value=color_input["hex"], key=f"color_{i}")
+            if new_color == "" or is_valid_hex(new_color):
+                valid_inputs.append({"hex": new_color if new_color != "" else "#000000", "name": new_name})
+                state.color_inputs[i] = {"hex": new_color, "name": new_name}  # Update the state
+            if len(state.color_inputs) > 1:
+                st.button(f"Remove Color {i+1}", key=f"remove_{i}", on_click=remove_color, args=(i,))
+
+    if len(valid_inputs) == len(state.color_inputs):
+        palettes = [generate_palette(color["hex"], color["name"]) for color in valid_inputs if color["hex"] != ""]
+
+        st.subheader("Generated Color Palette(s)")
+        for i, (palette, col) in enumerate(zip(palettes, cols)):
+            with col:
+                display_palette(palette, f"Color Palette {i+1}")
+
+        st.subheader("Color Information")
+        for i, (color_input, palette) in enumerate(zip(valid_inputs, palettes)):
+            if color_input["hex"] != "":
+                st.markdown(f"**Input Color {i+1}:** {color_input['name']} ({color_input['hex']})")
+                st.markdown(f"**Palette {i+1} - Lightest Color ({color_input['name']}.100):** {palette[color_input['name']+'.100']}")
+                st.markdown(f"**Palette {i+1} - Darkest Color ({color_input['name']}.900):** {palette[color_input['name']+'.900']}")
+
+        st.subheader("Copy Palette(s)")
+        palette_text = "\n\n".join([f"Palette {i+1}:\n" + "\n".join([f"{k}: {v}" for k, v in palette.items()]) for i, palette in enumerate(palettes)])
+        st.code(palette_text)
+        st.button("Copy to Clipboard", on_click=lambda: st.write("Palette(s) copied to clipboard!"))
+
+        # Generate and download CSS
+        css_content = generate_css(palettes)
+        st.download_button(
+            label="Download CSS",
+            data=css_content,
+            file_name="color_palettes.css",
+            mime="text/css"
+        )
+
+        # Generate and download SCSS
+        scss_content = generate_scss(palettes)
+        st.download_button(
+            label="Download SCSS",
+            data=scss_content,
+            file_name="color_palettes.scss",
+            mime="text/x-scss"
+        )
+    else:
+        st.error("Invalid hex color code(s). Please enter valid 6-digit hex colors (e.g., #FF5733) or leave the field empty.")
+
+# Add some information about using the app
+st.markdown("""
+### How to use this app:
+1. Enter valid hex color codes in the input fields (e.g., #FF5733).
+2. Click the "Add new base color" button to add more color inputs.
+3. Click the "Remove Color" button next to a color input to remove it (minimum one color required).
+4. The app will generate palettes of 9 colors each, displayed from color.100 (lightest) at the top to color.900 (darkest) at the bottom.
+5. Each color in the palette is generated based on the input color, adjusting its brightness.
+6. The palettes are displayed side by side.
+7. Each color in the palette is displayed with its name, hex value, and contrast ratios with white and black.
+8. The contrast ratios are followed by their WCAG compliance level:
+   - "fail" if the ratio is below 4.5
+   - "AA" if the ratio is 4.5 or higher
+   - "AAA" if the ratio is 7 or higher
+9. You can copy all palettes to your clipboard using the "Copy to Clipboard" button.
+10. You can download the color palettes as CSS or SCSS files using the respective download buttons.
+
+Enjoy creating beautiful and accessible color palettes!
+""")
+
+# Footer
+st.markdown("---")
+st.markdown("Created with ❤️ using Streamlit")
