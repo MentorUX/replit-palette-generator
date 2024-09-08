@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit import session_state as state
 from color_utils import generate_palette, is_valid_hex, get_contrast_ratio, hex_to_rgb, get_luminance
 import json
+import base64
 
 st.set_page_config(page_title="Color Palette Generator", page_icon="🎨", layout="wide")
 st.title("🌈 Color Palette Generator")
@@ -66,6 +67,23 @@ def get_text_color(bg_color):
     luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
     return "#000000" if luminance > 0.5 else "#FFFFFF"
 
+# Read the SVG file
+try:
+    with open("noun-delete-7174811.svg", "r") as f:
+        svg_content = f.read()
+    st.sidebar.success("SVG file loaded successfully")
+except Exception as e:
+    st.sidebar.error(f"Error loading SVG file: {str(e)}")
+    svg_content = ""
+
+# Function to render the SVG icon
+def render_svg_icon(svg_content, width=24):
+    return svg_content.replace('<svg', f'<svg width="{width}"')
+
+# Display the SVG icon in the sidebar for debugging
+st.sidebar.markdown("### Debug: SVG Icon")
+st.sidebar.markdown(render_svg_icon(svg_content), unsafe_allow_html=True)
+
 # Move the "Add new base color" button to the top of the page
 st.button("Add new base color", on_click=add_new_color)
 
@@ -81,7 +99,7 @@ for i, (col, color_input) in enumerate(zip(cols, state.color_inputs)):
             color_input["name"] = st.text_input(f"Color Name {i+1}", color_input["name"], key=f"name_{i}")
         with col2:
             if len(state.color_inputs) > 1:
-                if st.button("🗑️", key=f"remove_{i}"):
+                if st.button(render_svg_icon(svg_content), key=f"remove_{i}", help="Remove this color"):
                     remove_color(i)
         
         if is_valid_hex(color_input["hex"]):
