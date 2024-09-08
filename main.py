@@ -99,18 +99,18 @@ for i, (col, color_input) in enumerate(zip(cols, state.color_inputs)):
                 text_color = get_text_color(color_hex)
                 
                 st.markdown(f'''
-                <div style='background-color: {color_hex}; color: {text_color}; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;'>
-                    <div style='text-align: center;'>
-                        <div style='font-size: 24px; font-weight: bold;'>{contrast_black:.2f}</div>
-                        <div style='font-size: 16px;'>{black_status}</div>
+                <div style='background-color: {color_hex}; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;'>
+                    <div style='text-align: left; color: black;'>
+                        <div style='font-size: 20px; font-weight: bold;'>{contrast_black:.2f}</div>
+                        <div style='font-size: 14px;'>{black_status}</div>
                     </div>
-                    <div style='text-align: center;'>
-                        <div style='font-size: 18px; font-weight: bold;'>{color_name}</div>
+                    <div style='text-align: center; color: {text_color};'>
+                        <div style='font-size: 20px; font-weight: bold;'>{color_name}</div>
                         <div style='font-size: 14px;'>{color_hex}</div>
                     </div>
-                    <div style='text-align: center;'>
-                        <div style='font-size: 24px; font-weight: bold;'>{contrast_white:.2f}</div>
-                        <div style='font-size: 16px;'>{white_status}</div>
+                    <div style='text-align: right; color: white;'>
+                        <div style='font-size: 20px; font-weight: bold;'>{contrast_white:.2f}</div>
+                        <div style='font-size: 14px;'>{white_status}</div>
                     </div>
                 </div>
                 ''', unsafe_allow_html=True)
