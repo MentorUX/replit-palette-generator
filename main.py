@@ -76,10 +76,13 @@ cols = st.columns(len(state.color_inputs))
 for i, (col, color_input) in enumerate(zip(cols, state.color_inputs)):
     with col:
         color_input["hex"] = st.text_input(f"Base Color {i+1} (Hex)", color_input["hex"], key=f"hex_{i}")
-        color_input["name"] = st.text_input(f"Color Name {i+1}", color_input["name"], key=f"name_{i}")
-        
-        if len(state.color_inputs) > 1:
-            st.button(f"Remove Color {i+1}", on_click=remove_color, args=(i,), key=f"remove_{i}")
+        col1, col2 = st.columns([0.8, 0.2])
+        with col1:
+            color_input["name"] = st.text_input(f"Color Name {i+1}", color_input["name"], key=f"name_{i}")
+        with col2:
+            if len(state.color_inputs) > 1:
+                if st.button("🗑️", key=f"remove_{i}"):
+                    remove_color(i)
         
         if is_valid_hex(color_input["hex"]):
             palette = generate_palette(color_input["hex"], color_input["name"])
@@ -101,15 +104,15 @@ for i, (col, color_input) in enumerate(zip(cols, state.color_inputs)):
                 st.markdown(f'''
                 <div style='background-color: {color_hex}; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;'>
                     <div style='text-align: left; color: black;'>
-                        <div style='font-size: 24px; font-weight: bold;'>{contrast_black:.2f}</div>
+                        <div style='font-size: 16px; font-weight: bold;'>{contrast_black:.2f}</div>
                         <div style='font-size: 16px;'>{black_status}</div>
                     </div>
                     <div style='text-align: center; color: {text_color};'>
-                        <div style='font-size: 28px; font-weight: bold;'>{color_name}</div>
-                        <div style='font-size: 20px;'>{color_hex}</div>
+                        <div style='font-size: 18px; font-weight: bold;'>{color_name}</div>
+                        <div style='font-size: 16px;'>{color_hex}</div>
                     </div>
                     <div style='text-align: right; color: white;'>
-                        <div style='font-size: 24px; font-weight: bold;'>{contrast_white:.2f}</div>
+                        <div style='font-size: 16; font-weight: bold;'>{contrast_white:.2f}</div>
                         <div style='font-size: 16px;'>{white_status}</div>
                     </div>
                 </div>
