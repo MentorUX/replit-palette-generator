@@ -56,11 +56,25 @@ def generate_json(palettes):
             }
     return json.dumps(json_data, indent=2)
 
+# Add CSS to align the buttons side-by-side
+st.markdown("""
+<style>
+    div.stButton, div.stDownloadButton {
+        display: inline-block;
+        margin-right: 10px;
+    }
+    div.stButton > button, div.stDownloadButton > button {
+        width: auto;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Add buttons to the top of the page
-col1, col2 = st.columns([3, 1])
-with col2:
+col1, col2, col3, col4 = st.columns(4)
+with col1:
     st.button("Add new base color", on_click=add_new_color)
-    
+
+with col2:
     # Generate and download CSS
     css_content = generate_css([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
     st.download_button(
@@ -70,6 +84,7 @@ with col2:
         mime="text/css"
     )
 
+with col3:
     # Generate and download SCSS
     scss_content = generate_scss([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
     st.download_button(
@@ -79,6 +94,7 @@ with col2:
         mime="text/x-scss"
     )
 
+with col4:
     # Generate and download JSON
     json_content = generate_json([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
     st.download_button(
@@ -87,15 +103,6 @@ with col2:
         file_name="color_palettes.json",
         mime="application/json"
     )
-
-# Add CSS to align the buttons to the right
-st.markdown("""
-<style>
-    div.row-widget.stButton, div.row-widget.stDownloadButton {
-        text-align: right;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 def get_wcag_level(ratio):
     if ratio >= 7:
