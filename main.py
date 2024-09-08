@@ -53,6 +53,19 @@ def generate_json(palettes):
             }
     return json.dumps(json_data, indent=2)
 
+def get_contrast_status(ratio):
+    if ratio >= 7:
+        return "AAA"
+    elif ratio >= 4.5:
+        return "AA"
+    else:
+        return "FAIL"
+
+def get_text_color(bg_color):
+    r, g, b = hex_to_rgb(bg_color)
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return "#000000" if luminance > 0.5 else "#FFFFFF"
+
 # Move the "Add new base color" button to the top of the page
 st.button("Add new base color", on_click=add_new_color)
 
@@ -78,16 +91,27 @@ for i, (col, color_input) in enumerate(zip(cols, state.color_inputs)):
                 contrast_white = get_contrast_ratio(color_hex, "#FFFFFF")
                 contrast_black = get_contrast_ratio(color_hex, "#000000")
                 
-                # Determine text color based on contrast
-                text_color = "#FFFFFF" if contrast_white > contrast_black else "#000000"
+                # Get contrast status
+                white_status = get_contrast_status(contrast_white)
+                black_status = get_contrast_status(contrast_black)
+                
+                # Get text color based on background
+                text_color = get_text_color(color_hex)
                 
                 st.markdown(f'''
-                <div style='background-color: {color_hex}; padding: 10px; border-radius: 5px; margin-bottom: 5px;'>
-                    <p style='color: {text_color}; margin: 0;'>{color_name}: {color_hex}</p>
-                    <p style='color: {text_color}; margin: 0; font-size: 0.8em;'>
-                        White: {contrast_white:.2f} ({'AAA' if contrast_white >= 7 else 'AA' if contrast_white >= 4.5 else 'Fail'})
-                        Black: {contrast_black:.2f} ({'AAA' if contrast_black >= 7 else 'AA' if contrast_black >= 4.5 else 'Fail'})
-                    </p>
+                <div style='background-color: {color_hex}; color: {text_color}; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;'>
+                    <div style='text-align: center;'>
+                        <div style='font-size: 24px; font-weight: bold;'>{contrast_black:.2f}</div>
+                        <div style='font-size: 16px;'>{black_status}</div>
+                    </div>
+                    <div style='text-align: center;'>
+                        <div style='font-size: 18px; font-weight: bold;'>{color_name}</div>
+                        <div style='font-size: 14px;'>{color_hex}</div>
+                    </div>
+                    <div style='text-align: center;'>
+                        <div style='font-size: 24px; font-weight: bold;'>{contrast_white:.2f}</div>
+                        <div style='font-size: 16px;'>{white_status}</div>
+                    </div>
                 </div>
                 ''', unsafe_allow_html=True)
         else:
