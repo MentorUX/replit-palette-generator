@@ -56,62 +56,86 @@ def generate_json(palettes):
             }
     return json.dumps(json_data, indent=2)
 
-# Update CSS to improve button layout
-st.markdown("""
-<style>
-    div.stButton, div.stDownloadButton {
-        display: inline-block;
-        margin-right: 10px;
-    }
-    div.stButton > button, div.stDownloadButton > button {
-        width: auto;
-        padding: 0.25rem 0.75rem;
-        font-size: 0.8rem;
-        line-height: 1.5;
-    }
-    .stApp > header {
-        background-color: transparent;
-    }
-    .main .block-container {
-        padding-top: 2rem;
-    }
-</style>
-""", unsafe_allow_html=True)
+st.button("Add new base color", on_click=add_new_color)
 
-# Create a single row for buttons
-button_col = st.columns(4)
+# Display color inputs and generate palettes
+for i, color_input in enumerate(state.color_inputs):
+    col1, col2, col3 = st.columns([2, 2, 1])
+    
+    with col1:
+        color_input["hex"] = st.text_input(f"Base Color {i+1} (Hex)", color_input["hex"], key=f"hex_{i}")
+    
+    with col2:
+        color_input["name"] = st.text_input(f"Color Name {i+1}", color_input["name"], key=f"name_{i}")
+    
+    with col3:
+        if len(state.color_inputs) > 1:
+            st.button(f"Remove Color {i+1}", on_click=remove_color, args=(i,), key=f"remove_{i}")
+        else:
+            st.write("")  # Empty space to maintain layout
 
-with button_col[0]:
-    st.button("Add new base color", on_click=add_new_color)
+    if is_valid_hex(color_input["hex"]):
+        palette = generate_palette(color_input["hex"], color_input["name"])
+        
+        # Display color palette vertically in a single column
+        st.write(f"### {color_input['name']} Palette")
+        st.markdown("""
+        <style>
+        .color-palette {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        st.markdown('<div class="color-palette">', unsafe_allow_html=True)
+        for color_name, color_hex in palette.items():
+            # Calculate contrast ratios
+            contrast_white = get_contrast_ratio(color_hex, "#FFFFFF")
+            contrast_black = get_contrast_ratio(color_hex, "#000000")
+            
+            # Determine text color based on contrast
+            text_color = "#FFFFFF" if contrast_white > contrast_black else "#000000"
+            
+            st.markdown(f"""
+            <div style='background-color: {color_hex}; padding: 10px; border-radius: 5px; margin-bottom: 5px; width: 100%;'>
+                <p style='color: {text_color}; margin: 0;'>{color_name}: {color_hex}</p>
+                <p style='color: {text_color}; margin: 0; font-size: 0.8em;'>
+                    White: {contrast_white:.2f} ({'AAA' if contrast_white >= 7 else 'AA' if contrast_white >= 4.5 else 'Fail'})
+                    Black: {contrast_black:.2f} ({'AAA' if contrast_black >= 7 else 'AA' if contrast_black >= 4.5 else 'Fail'})
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+    else:
+        st.error(f"Invalid hex color for Base Color {i+1}. Please enter a valid hex color (e.g., #FF5733).")
 
-with button_col[1]:
-    # Generate and download CSS
-    css_content = generate_css([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
-    st.download_button(
-        label="Download CSS",
-        data=css_content,
-        file_name="color_palettes.css",
-        mime="text/css"
-    )
+# Generate and download buttons
+css_content = generate_css([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
+scss_content = generate_scss([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
+json_content = generate_json([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
 
-with button_col[2]:
-    # Generate and download SCSS
-    scss_content = generate_scss([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
-    st.download_button(
-        label="Download SCSS",
-        data=scss_content,
-        file_name="color_palettes.scss",
-        mime="text/x-scss"
-    )
+st.download_button(
+    label="Download CSS",
+    data=css_content,
+    file_name="color_palettes.css",
+    mime="text/css"
+)
 
-with button_col[3]:
-    # Generate and download JSON
-    json_content = generate_json([generate_palette(color["hex"], color["name"]) for color in state.color_inputs if color["hex"] != ""]) if 'color_inputs' in state else ""
-    st.download_button(
-        label="Download JSON",
-        data=json_content,
-        file_name="color_palettes.json",
-        mime="application/json"
-    )
+st.download_button(
+    label="Download SCSS",
+    data=scss_content,
+    file_name="color_palettes.scss",
+    mime="text/x-scss"
+)
 
-# ... (rest of the code remains unchanged)
+st.download_button(
+    label="Download JSON",
+    data=json_content,
+    file_name="color_palettes.json",
+    mime="application/json"
+)
+
+# Add some spacing at the bottom
+st.markdown("<br><br>", unsafe_allow_html=True)
