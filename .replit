@@ -13,10 +13,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start Streamlit app"
+args = "Streamlit App"
 
 [[workflows.workflow]]
-name = "Start Streamlit app"
+name = "Streamlit App"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -24,12 +24,12 @@ agentRequireRestartOnSave = false
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "streamlit run main.py --server.port 5000"
+args = "streamlit run main.py"
 waitForPort = 5000
 
 [deployment]
-run = ["sh", "-c", "streamlit run main.py --server.port 5000"]
+deploymentTarget = "static"
+publicDir = "./"
 
 [[ports]]
 localPort = 5000
-externalPort = 80

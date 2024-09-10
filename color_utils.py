@@ -1,4 +1,5 @@
 import colorsys
+import json
 
 def hex_to_rgb(hex_color):
     """Convert hex color to RGB."""
@@ -52,3 +53,51 @@ def get_contrast_ratio(color1, color2):
     brightest = max(lum1, lum2)
     darkest = min(lum1, lum2)
     return (brightest + 0.05) / (darkest + 0.05)
+
+def get_contrast_status(ratio):
+    """Get the contrast status based on WCAG guidelines."""
+    if ratio >= 7:
+        return "AAA"
+    elif ratio >= 4.5:
+        return "AA"
+    else:
+        return "FAIL"
+
+def get_text_color(bg_color):
+    """Get the appropriate text color (black or white) based on the background color."""
+    rgb = hex_to_rgb(bg_color)
+    luminance = get_luminance(rgb)
+    return "#000000" if luminance > 0.5 else "#FFFFFF"
+
+def generate_css(palettes):
+    """Generate CSS content for the color palettes."""
+    css = ":root {\n"
+    for palette in palettes:
+        for color_name, color_hex in palette.items():
+            css += f"  --{color_name.replace('.', '-')}: {color_hex};\n"
+    css += "}\n"
+    return css
+
+def generate_scss(palettes):
+    """Generate SCSS content for the color palettes."""
+    scss = ""
+    for i, palette in enumerate(palettes):
+        scss += f"$palette-{i+1}: (\n"
+        for color_name, color_hex in palette.items():
+            scss += f"  '{color_name}': {color_hex},\n"
+        scss = scss.rstrip(',\n') + "\n);\n"
+    return scss
+
+def generate_json(palettes):
+    """Generate JSON content for the color palettes."""
+    json_data = {}
+    for palette in palettes:
+        color_name = next(iter(palette)).split('.')[0]  # Get the base color name
+        json_data[color_name] = {}
+        for full_color_name, color_hex in palette.items():
+            shade = full_color_name.split('.')[1]
+            json_data[color_name][shade] = {
+                "value": color_hex,
+                "type": "color"
+            }
+    return json.dumps(json_data, indent=2)
